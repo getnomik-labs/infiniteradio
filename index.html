@@ -71,6 +71,19 @@ header .by { color: var(--muted); margin-left: 10px; }
 .hint { color: var(--muted); margin-top: 22px; }
 footer { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; max-width: 70ch; }
 
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; background: var(--panel); }
+.seg button { border: 0; background: transparent; border-radius: 999px; padding: 8px 14px; font-size: 14px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); font-weight: 600; }
+.real { margin: 0 0 22px; padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); display: grid; gap: 12px; }
+.real[hidden] { display: none; }
+.real h3 { margin: 4px 0 0; font-family: var(--font-display); font-size: 20px; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.real p { margin: 0; color: var(--muted); font-size: 14px; }
+.realTop { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.rframe { position: relative; width: 100%; max-width: 420px; aspect-ratio: 16 / 9; min-height: 200px; border-radius: 14px; overflow: hidden; background: #000; }
+.rframe[hidden] { display: none; }
+.rframe iframe, .rframe #ytReal { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.real .err { color: #ff9a8f; }
+
 @media (max-width: 640px) {
   .screen { aspect-ratio: 4 / 3; }
   .play { flex: 1 1 100%; }
@@ -98,6 +111,10 @@ footer { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line);
 
   <div class="strip">
     <button class="play" id="playBtn" type="button">Play</button>
+    <div class="seg" role="group" aria-label="Music source">
+      <button type="button" id="modeGen" aria-pressed="true">Generated</button>
+      <button type="button" id="modeReal" aria-pressed="false">Real music</button>
+    </div>
     <label class="ctl mono" for="vol">Volume <input id="vol" type="range" min="0" max="100" value="80"></label>
     <button class="ghost" id="newVar" type="button">New variation</button>
     <label class="ctl mono" for="sleep">Sleep
@@ -107,10 +124,19 @@ footer { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line);
   </div>
   <div class="readout mono" id="readout" aria-live="polite"></div>
 
+  <section class="real" id="realCard" hidden aria-label="Real music">
+    <div class="realTop">
+      <div><span class="mono" style="color:var(--accent)">Real music</span><h3 id="realTitle">Ready when you are</h3><p id="realBy"></p></div>
+      <button class="ghost" id="realNext" type="button">Next track</button>
+    </div>
+    <div class="rframe" id="realFrame" hidden><div id="ytReal"></div></div>
+    <p class="err" id="realMsg" hidden></p>
+  </section>
+
   <nav class="dial" id="dial" aria-label="Stations"></nav>
   <p class="hint mono">Space plays or stops. Left and right arrows change station.</p>
 
-  <footer>Every note is made live in your browser from oscillators and noise. Nothing is streamed, sampled or recorded, so there is no music to license. The same seed always gives the same music. Open source, from Getnomik Labs.</footer>
+  <footer>Generated mode makes every note live in your browser from oscillators and noise, so there is nothing to license, and the same seed always gives the same music. Real music mode plays recorded tracks from their original YouTube uploads inside YouTube's own player, or from audio files you have the right to use. Nothing is copied or re-hosted. Open source, from Getnomik Labs.</footer>
 </div>
 
 <script>
@@ -504,9 +530,30 @@ function silence(sec) {
 }
 /*ENGINE_END*/
 
+/* ============ REAL MUSIC (edit me) ============
+   One list per station, in the same order as the dial:
+   Rain, Space, Cafe, Night Drive, Calm, Cyberpunk, Desi Beats.
+   yt      : a YouTube video or 24/7 live stream id (the part after v= in the link)
+   src     : a direct link to an audio file you have the right to use (mp3, ogg or m4a).
+             If its host sends CORS headers the visuals react to it, otherwise it still plays.
+   title   : what the page shows
+   by      : optional artist or channel
+   The starter links below came from search results and have not been checked.
+   Live streams change or disappear over time. A link that fails is skipped
+   automatically, but please open the page once and replace any that do not play. */
+const REAL = [
+  [ { yt: 'wo5dCR_A9Io', title: 'Rain Sounds Live 24/7' }, { yt: 'J8c5Wy8NRlw', title: 'Rain on Tent, live' }, { yt: 'jpQ0R5rip2s', title: 'Rain Sounds and Chill Music, live' } ],
+  [ { yt: 'p5xQUlh49FM', title: 'Space Ambient Music, live 24/7' }, { yt: 'X7X3UDwyyqo', title: 'Space Ambient Music, live mix' }, { yt: 'AXvnFk38sDQ', title: 'Cosmic Ambient Transmission, 24/7' } ],
+  [ { yt: 'psEr3_r9Yqw', title: 'Smooth Jazz Radio, Cafe Jazz and Lounge, live' }, { yt: '70ogVnZpOGU', title: 'Cozy 1940s Vintage Jazz Radio, live' }, { yt: '8UuQVV9qdQQ', title: 'Morning Jazz Radio, 24/7' } ],
+  [ { yt: 'qWmQB6ZI6Z4', title: 'Night Drive Radio, chill synthwave, live' }, { yt: 'FQBBDo9HuJw', title: 'New Retro FM, synthwave radio, 24/7' }, { yt: 'uJVgNa9hLhY', title: 'Synthwave Radio 24/7, The Drive' } ],
+  [ { yt: 'uDaRRUr05-A', title: 'Calm Ambient Sounds, live' }, { yt: 'RUFOvqavYi0', title: 'Peaceful Relaxing Music, live 24/7' }, { yt: '4khIPP--FDU', title: 'Beautiful Piano Music, 24/7' } ],
+  [ { yt: 'PP1HTYB2Rtg', title: 'Cyberpunk Hacker Radio, 24/7' }, { yt: 'SkIs42CKf8A', title: 'Cyberpunk Radio No. 1' }, { yt: 'OpL4fJsK7Z8', title: 'Cyberpunk Ambient Radio' } ],
+  [ { yt: 'OU-pcEjsoxs', title: 'Tabla and Bansuri Meditation Music' }, { yt: 'ufdGIt04Nvg', title: 'Kashi Lofi Vol. 1, Indian classical study music' }, { yt: 'zVLtLpQFES4', title: 'Flute, Tabla and Sitar Compilation' } ]
+];
+
 /* ================= interface and visuals ================= */
 const $ = (id) => document.getElementById(id);
-let sel = 0, playing = false, seed = Math.floor(Math.random() * 9000) + 1000, sleepEnd = 0, level = 0;
+let sel = 0, playing = false, mode = 'gen', seed = Math.floor(Math.random() * 9000) + 1000, sleepEnd = 0, level = 0;
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const MOTION = reduce ? 0.3 : 1;
 
@@ -710,11 +757,13 @@ let last = performance.now(), levelBuf = null;
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000) * MOTION; last = now;
   let target = 0.08 + 0.04 * Math.sin(now / 900);
-  if (playing && analyser) {
+  if (playing && analyser && (mode === 'gen' || audioCors)) {
     if (!levelBuf) levelBuf = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(levelBuf);
     let s = 0; for (let i = 0; i < 24; i++) s += levelBuf[i];
     target = Math.min(1, (s / (24 * 255)) * 1.6);
+  } else if (playing && mode === 'real') {
+    target = 0.24 + 0.12 * Math.sin(now / 520) + 0.06 * Math.sin(now / 1370);   // YouTube audio cannot be analysed, so the visuals pulse gently instead
   }
   level += (target - level) * 0.12;
   VIS[sel].draw(dt, now / 1000, level);
@@ -740,10 +789,111 @@ function applyTheme() {
   r.setProperty('--line', C.line); r.setProperty('--accent', C.accent); r.setProperty('--accent2', C.accent2);
 }
 let curInfo = '';
+let realNow = null, audioEl = null, audioCors = false;
 function setReadout() {
-  $('readout').textContent = playing && curInfo ? curInfo + ' · seed ' + seed : 'Press play to tune in. Every note is generated live, right here.';
-  $('seedBadge').textContent = 'Seed ' + seed;
+  let txt;
+  if (!playing) txt = 'Press play to tune in. Generated makes every note live. Real music plays recorded tracks.';
+  else if (mode === 'real') txt = 'Real music · ' + (realNow ? realNow.title + (realNow.by ? ' · ' + realNow.by : '') : 'loading');
+  else txt = curInfo + ' · seed ' + seed;
+  $('readout').textContent = txt;
+  $('seedBadge').textContent = mode === 'real' ? 'Real music' : 'Seed ' + seed;
 }
+
+/* ----- real music ----- */
+const keyOf = (t) => (t.yt ? 'yt:' + t.yt : 'src:' + t.src);
+const badKeys = new Set();
+let ytp = null, ytReady = false, ytWanted = null, ytLoading = false, realIdx = 0;
+function realMsg(txt) { const m = $('realMsg'); m.textContent = txt || ''; m.hidden = !txt; }
+function showRealIdle() {
+  const list = REAL[sel] || [];
+  $('realTitle').textContent = list.length ? 'Ready when you are' : 'No tracks yet';
+  $('realBy').textContent = list.length ? 'Press play to start ' + STATIONS[sel].name + ' with real music.' : 'Add tracks for this station in the REAL list at the top of the script.';
+  $('realFrame').hidden = true;
+}
+function ensureYT(cb) {
+  if (ytp && ytReady) { cb(); return; }
+  ytWanted = cb;
+  if (ytp || ytLoading) return;
+  ytLoading = true;
+  window.onYouTubeIframeAPIReady = () => {
+    ytp = new YT.Player('ytReal', {
+      width: '100%', height: '100%', playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady: () => { ytReady = true; ytp.setVolume(Math.round(volume * 100)); if (ytWanted) { const f = ytWanted; ytWanted = null; f(); } },
+        onStateChange: (e) => { if (e.data === 0 && playing && mode === 'real') playReal(realIdx + 1); },
+        onError: () => { if (realNow) badKeys.add(keyOf(realNow)); if (playing && mode === 'real') playReal(realIdx + 1); }
+      }
+    });
+  };
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  s.onerror = () => { ytLoading = false; realMsg('The YouTube player could not load here. Open the standalone page to use real music, or add audio files with src in the REAL list.'); };
+  document.head.appendChild(s);
+}
+function killAudio() {
+  if (audioEl) { audioEl.onended = null; audioEl.onerror = null; audioEl.pause(); audioEl.removeAttribute('src'); try { audioEl.load(); } catch (e) {} audioEl = null; }
+  audioCors = false;
+}
+function playAudio(t, plain) {
+  killAudio();
+  const a = new Audio(); a.preload = 'auto';
+  if (!plain) a.crossOrigin = 'anonymous';
+  a.onended = () => { if (playing && mode === 'real') playReal(realIdx + 1); };
+  a.onerror = () => {
+    if (!plain) playAudio(t, true);
+    else { badKeys.add(keyOf(t)); if (playing && mode === 'real') playReal(realIdx + 1); }
+  };
+  a.src = t.src;
+  audioEl = a; audioCors = !plain;
+  if (!plain) {
+    try { if (!ctx) initAudio(); ctx.resume(); ctx.createMediaElementSource(a).connect(master); }
+    catch (e) { audioCors = false; a.volume = volume; }
+  } else a.volume = volume;
+  a.play().catch(() => {});
+}
+function playReal(startIdx) {
+  const list = REAL[sel] || [];
+  if (!list.length) { showRealIdle(); realMsg('No real tracks are set for this station yet.'); return; }
+  let idx = ((startIdx % list.length) + list.length) % list.length, tries = 0;
+  while (badKeys.has(keyOf(list[idx])) && tries < list.length) { idx = (idx + 1) % list.length; tries++; }
+  if (tries >= list.length) { realMsg("None of this station's tracks could play. Replace them in the REAL list."); return; }
+  realMsg('');
+  realIdx = idx; realNow = list[idx];
+  $('realTitle').textContent = realNow.title;
+  $('realBy').textContent = (realNow.by ? realNow.by + ' · ' : '') + (realNow.yt ? 'YouTube' : 'Audio file');
+  setReadout();
+  if (realNow.yt) {
+    killAudio(); $('realFrame').hidden = false;
+    const id = realNow.yt;
+    ensureYT(() => { try { ytp.loadVideoById(id); ytp.setVolume(Math.round(volume * 100)); } catch (e) {} });
+  } else if (realNow.src) {
+    try { if (ytp && ytReady) ytp.stopVideo(); } catch (e) {}
+    $('realFrame').hidden = true;
+    playAudio(realNow, false);
+  }
+}
+function startReal() { playReal(Math.floor(Math.random() * ((REAL[sel] || []).length || 1))); }
+function stopReal() {
+  try { if (ytp && ytReady) ytp.stopVideo(); } catch (e) {}
+  ytWanted = null;
+  killAudio();
+}
+function setMode(m) {
+  if (m === mode) return;
+  mode = m;
+  $('modeGen').setAttribute('aria-pressed', String(m === 'gen'));
+  $('modeReal').setAttribute('aria-pressed', String(m === 'real'));
+  $('realCard').hidden = m !== 'real';
+  $('newVar').hidden = m === 'real';
+  if (playing) {
+    if (m === 'real') { silence(0.6); startReal(); }
+    else { stopReal(); if (!ctx) initAudio(); ctx.resume(); const st = tune(sel, seed); curInfo = st.info; }
+  } else if (m === 'real') showRealIdle();
+  setReadout();
+}
+$('modeGen').addEventListener('click', () => setMode('gen'));
+$('modeReal').addEventListener('click', () => setMode('real'));
+$('realNext').addEventListener('click', () => { if (playing) playReal(realIdx + 1); else start(); });
 function select(i) {
   sel = i; C = STATIONS[i].c; applyTheme();
   $('stTag').textContent = 'Station ' + (i + 1) + ' of ' + STATIONS.length;
@@ -751,27 +901,35 @@ function select(i) {
   $('stLine').textContent = STATIONS[i].line;
   [...dial.children].forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
   VIS[i].init();
-  if (playing) { const st = tune(i, seed); curInfo = st.info; }
+  if (playing) {
+    if (mode === 'real') playReal(Math.floor(Math.random() * ((REAL[i] || []).length || 1)));
+    else { const st = tune(i, seed); curInfo = st.info; }
+  } else if (mode === 'real') showRealIdle();
   setReadout();
 }
 function start() {
-  if (!ctx) initAudio();
-  ctx.resume();
   playing = true;
-  const st = tune(sel, seed); curInfo = st.info;
+  if (mode === 'real') startReal();
+  else { if (!ctx) initAudio(); ctx.resume(); const st = tune(sel, seed); curInfo = st.info; }
   $('playBtn').textContent = 'Stop';
   setReadout();
 }
 function stop(fade) {
   playing = false;
   silence(fade || 0.7);
+  stopReal();
   setTimeout(() => { if (!playing && ctx) ctx.suspend(); }, (fade || 0.7) * 1000 + 900);
   $('playBtn').textContent = 'Play';
   sleepEnd = 0; $('sleep').value = '0'; $('sleepLeft').textContent = '';
   setReadout();
 }
 $('playBtn').addEventListener('click', () => (playing ? stop() : start()));
-$('vol').addEventListener('input', (e) => setVolume(+e.target.value / 100));
+$('vol').addEventListener('input', (e) => {
+  const v = +e.target.value / 100;
+  setVolume(v);
+  if (ytp && ytReady) ytp.setVolume(Math.round(v * 100));
+  if (audioEl && !audioCors) audioEl.volume = v;
+});
 $('newVar').addEventListener('click', () => {
   seed = Math.floor(Math.random() * 9000) + 1000;
   if (playing) { const st = tune(sel, seed); curInfo = st.info; }
